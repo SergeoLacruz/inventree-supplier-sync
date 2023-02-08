@@ -1,5 +1,5 @@
 # Plugin that syncronises parts with the Mouser database. 
-# Todo :
+# Todo:
 # Go directly to next part in case no update happened
 
 
