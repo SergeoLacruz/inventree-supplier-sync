@@ -35,7 +35,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         'member': {
             'func': 'UpdatePart',
             'schedule': 'I',
-            'minutes': 1,
+            'minutes': 2,
         }
     }
 
