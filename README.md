@@ -6,12 +6,13 @@
 
 This is a scheduled task plugin for [InvenTree](https://inventree.org), which gets data from a
 supplier like Mouser and puts it into the Inventree Database. 
-It is work in progress. A lot of things need to be done. 
-Error handling is very basic. 
 
 ## Installation
 
-There is no package yet. Just copy the code into src/Inventree/plugins
+```
+pip install git+https://github.com/SergeoLacruz/inventree-supplier-plugin
+```
+
 
 ## What it does
 The plugin uses the scheduled task mixin and runs every few minutes. On each run it
@@ -39,7 +40,8 @@ Put here the link to the API. Usually it is constant and does not need to be cha
 
 ### Proxies
 In case you need to authorise a proxy server between your Inventree server and the internet
-put the required sting here for example proxies={ 'https' : 'http://user:password@ipaddress:port' }
+put the required sting here for example something like { 'https' : 'https://user:password@ipaddress:port' }
+Please refer to the code for details.
 
 ### The actual component
 This is the primary key of the next component to be synchronized. It is a persistent storage 
@@ -47,13 +49,14 @@ of the plugin and changes automatically. You should not touch it.
 
 ## How it works
 The Mouser API limits the access frequency and the total number of accesses per 24 hours. 
-Because of that the plugin runs every two minutes an and works always on one part. It uses
-a setting to persistantly store the primary key of the next part to by synchronized. The
+Because of that the plugin runs every two minutes and works always on one part. It uses
+a setting to persistently store the primary key of the next part to by synchronized. The
 function UpdatePart does the magic. 
 
 In case the part has no supplier part from the supplier Mouser the plugin tries to create one. 
-It runs a part number search on the mouser API with the parts manufacturer part number. 
-the search can return several results e.g. BC107 will find BC107A as well. 
+It runs a part number search on the mouser API with the manufacturer part number. We use
+the name field of the part for the MPN. This might be different in your setup. So take care. 
+The search can return several results e.g. BC107 will find BC107A as well. 
 In case Mouser reports exactly one hit, a supplier part is created and the mouser part number
 is put into the SKU field. In case more than one parts are reported the plugin creates a supplier
 part and ads a generic string into the SKu field. The plugin cannot decide which part is the 
@@ -72,3 +75,11 @@ Error handling is not good yet. In case Mouser return garbage the plugin might j
 because keys in the json might be missing
 
 The plugin should be more generic to easier support other suppliers like Digikey. 
+
+The process of adding supplier parts automatically might be questionable depending on the 
+setup. It works in our setup as we add exactly one MPN to each part. In case of a different
+setup this part of the plugin can easily be removed. The more important part is anyhow the
+update on the price breaks.
+
+E.g. Mouser sends more data like availability, packaging and so on. I may make sense to 
+include these into the properties to update.
