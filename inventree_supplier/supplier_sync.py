@@ -26,7 +26,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     SLUG = "suppliersync"
     TITLE = "Sync parts with a supplier"
     AUTHOR = "Michael"
-    PUBLISH_DATE = "2023-01-04T20:55:08.914461+00:00"
+    PUBLISH_DATE = "2023-02-11T20:55:08.914461+00:00"
     VERSION = '0.0.1'
     DESCRIPTION = 'Syncronize parts with Supplier SKU and price breaks'
     MIN_VERSION = '0.11.0'
@@ -47,6 +47,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         'SUPPLIERLINK': {
             'name': 'Supplier link',
             'description': 'Comlpete http link to the suppliers API',
+            'default': 'https://api.mouser.com/api/v1.0/search/partnumber?apiKey=',
         },
         'PROXIES': {
             'name': 'Proxies',
@@ -66,6 +67,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         <p>Setup:</p>
         <ol>
         <li>Create a key for the Mouser API</li>
+        <li>RTFM</li>
         <li>Enable the plugin</li>
         <li>Put key into settings</li>
         <li>Put link to the API into settings</li>
