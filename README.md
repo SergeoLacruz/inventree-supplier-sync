@@ -20,6 +20,15 @@ the plugin creates one and ads the mouser part number to the SKU field. In case 
 supplier part with supplier Mouser already exists the plugin creates new price breaks. 
 Mouser allows 1000 hits per Day. So the plugin can run every two minutes. 
 
+Parts are excluded from the synchronisation if:
+
+- the part is no active
+- the part is no purchasable
+- the category of the part is excluded. 
+
+Because there is no "purchasable" flag on categories we use metadata to exclude it. 
+Put {"supplier_sync": {"exclude": "True"}} into the metadata field of the category. 
+
 ## Configuration Options
 ### Supplier API key
 Accessing the Mouser REST API requires an access key. You can create it easily on the Mouser 
