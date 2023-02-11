@@ -13,11 +13,11 @@ from company.models import SupplierPriceBreak
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('sync.log')
-fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+#fh = logging.FileHandler('sync.log')
+#fh.setLevel(logging.DEBUG)
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#fh.setFormatter(formatter)
+#logger.addHandler(fh)
 
 #---------------------------- MouserSyncPlugin --------------------------------------------------
 class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
