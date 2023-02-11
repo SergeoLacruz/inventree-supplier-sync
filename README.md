@@ -22,8 +22,8 @@ Mouser allows 1000 hits per Day. So the plugin can run every two minutes.
 
 Parts are excluded from the synchronisation if:
 
-- the part is no active
-- the part is no purchasable
+- the part is not active
+- the part is not purchasable
 - the category of the part is excluded. 
 
 Because there is no "purchasable" flag on categories we use metadata to exclude it. 
