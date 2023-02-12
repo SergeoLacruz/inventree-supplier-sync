@@ -40,6 +40,10 @@ In case you need to authorise a proxy server between your InvenTree server and t
 put the required sting here for example something like { 'https' : 'https://user:password@ipaddress:port' }
 Please refer to the code for details.
 
+### Locale
+Here you can set the locale for your system. The setting is used to convert price that is
+reported. E.g. Mouser reports prices with commas and an euro sign. 
+
 ### The actual component
 This is the primary key of the next component to be synchronized. It is a persistent storage 
 of the plugin and changes automatically. You should not touch it.

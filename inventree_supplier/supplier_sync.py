@@ -3,6 +3,7 @@
 import requests
 import json
 import logging
+import locale
 
 from plugin import InvenTreePlugin
 from plugin.mixins import ScheduleMixin, SettingsMixin
@@ -12,12 +13,12 @@ from company.models import Company
 from company.models import SupplierPriceBreak
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-#fh = logging.FileHandler('sync.log')
-#fh.setLevel(logging.DEBUG)
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#fh.setFormatter(formatter)
-#logger.addHandler(fh)
+logger.setLevel(logging.INFO)
+fh = logging.FileHandler('sync.log')
+fh.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 #---------------------------- MouserSyncPlugin --------------------------------------------------
 class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
@@ -26,7 +27,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     SLUG = "suppliersync"
     TITLE = "Sync parts with a supplier"
     AUTHOR = "Michael"
-    PUBLISH_DATE = "2023-02-11T20:55:08.914461+00:00"
+    PUBLISH_DATE = "2023-02-12T20:55:08.914461+00:00"
     VERSION = '0.0.1'
     DESCRIPTION = 'Syncronize parts with Supplier SKU and price breaks'
     MIN_VERSION = '0.11.0'
@@ -52,6 +53,11 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         'PROXIES': {
             'name': 'Proxies',
             'description': 'Access to proxy server if needed',
+        },
+        'LOCALE': {
+            'name': 'Locale',
+            'description': 'Here you can set locale string for decimal conversion',
+            'default': 'de_DE.UTF-8',
         },
         'AKTPK': {
             'name': 'The actual component',
@@ -170,7 +176,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         if not p.active:
             logger.debug('Skipping part %s. Part is not active',p.IPN)
             return False
-        logger.debug('Updating part %s %s', p.IPN, p.name)
+        logger.info('Updating part %s %s', p.IPN, p.name)
         return True
 
 #------------------------------- GetSupplierData -----------------------------------------
@@ -205,7 +211,11 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     # We need a supplier specific modification to the price answer because they put 
     # funny things inside like an EURO sign into the number and use , instead of . 
     def ReformatPrice(self,price):
-         return price[0:len(price)-1].replace(',','.')
+        locale.setlocale(locale.LC_NUMERIC, self.get_setting('LOCALE') )
+        locale.setlocale(locale.LC_MONETARY, self.get_setting('LOCALE'))
+        conv = locale.localeconv()
+        NewPrice=locale.atof(price.strip(conv['currency_symbol']))
+        return NewPrice
 
 #----------------------------- CreateSupplierPart ----------------------------------------
 # Here we use a normal search because otherwise the MPN are not found. This means that 
