@@ -27,7 +27,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     SLUG = "suppliersync"
     TITLE = "Sync parts with a supplier"
     AUTHOR = "Michael"
-    PUBLISH_DATE = "2023-02-12T20:55:08.914461+00:00"
+    PUBLISH_DATE = "2023-02-16T20:55:08.914461+00:00"
     VERSION = '0.0.1'
     DESCRIPTION = 'Syncronize parts with Supplier SKU and price breaks'
     MIN_VERSION = '0.11.0'
@@ -58,6 +58,12 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
             'name': 'Locale',
             'description': 'Here you can set locale string for decimal conversion',
             'default': 'de_DE.UTF-8',
+        },
+        'CREATE_SUPPLIERPARTS': {
+            'name': 'Create Supplierparts',
+            'description': 'Try to create a supplierpart if none exists in the database',
+            'validator': bool,
+            'default': True,
         },
         'AKTPK': {
             'name': 'The actual component',
@@ -119,7 +125,8 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
                 if sp.SKU != 'N/A' and sp.SKU != self.GenericSKU:    
                     Success=self.UpdateSupplierParts(sp)
         else:
-            Success=self.CreateSupplierPart(PartToUpdate)
+            if self.get_setting('CREATE_SUPPLIERPARTS'):
+                Success=self.CreateSupplierPart(PartToUpdate)
 
         # In case the update was OK we go to the next one. Otherwise we try it again and again...
         if Success:

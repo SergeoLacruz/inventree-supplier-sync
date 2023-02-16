@@ -44,6 +44,11 @@ Please refer to the code for details.
 Here you can set the locale for your system. The setting is used to convert price that is
 reported. E.g. Mouser reports prices with commas and an euro sign. 
 
+### Create Supplierparts
+When the switch is on, the plugin does a part number search at the supplier and creates 
+a supplier part in case it finds a match (see description). If off, this part is skipped. 
+Only price breaks on existing supplier parts are synchronized. 
+
 ### The actual component
 This is the primary key of the next component to be synchronized. It is a persistent storage 
 of the plugin and changes automatically. You should not touch it.
