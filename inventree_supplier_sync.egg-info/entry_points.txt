@@ -1,0 +1,2 @@
+[inventree_plugins]
+SupplierSyncPlugin = inventree_supplier_sync.supplier_sync:SupplierSyncPlugin

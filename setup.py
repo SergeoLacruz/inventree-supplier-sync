@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import setuptools
-from inventree_supplier.version import PLUGIN_VERSION
+from inventree_supplier_sync.version import PLUGIN_VERSION
 
 
 with open('README.md', encoding='utf-8') as f:
@@ -9,7 +9,7 @@ with open('README.md', encoding='utf-8') as f:
 
 
 setuptools.setup(
-    name="inventree-supplier-plugin",
+    name="inventree-supplier-sync",
 
     version=PLUGIN_VERSION,
 
@@ -25,7 +25,7 @@ setuptools.setup(
 
     keywords="inventree supplier price breaks inventory",
 
-    url="https://github.com/SergeoLacruz/inventree-supplier-plugin",
+    url="https://github.com/SergeoLacruz/inventree-supplier-sync",
 
     license="MIT",
 
@@ -43,7 +43,7 @@ setuptools.setup(
 
     entry_points={
         "inventree_plugins": [
-            "SupplierSyncPlugin = inventree_supplier.supplier_sync:SupplierSyncPlugin"
+            "SupplierSyncPlugin = inventree_supplier_sync.supplier_sync:SupplierSyncPlugin"
         ]
     },
 )
