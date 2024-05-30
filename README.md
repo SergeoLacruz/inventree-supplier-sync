@@ -1,6 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# inventree-supplier-plugin
+# inventree-supplier-sync
 
 This is a scheduled task plugin for [InvenTree](https://inventree.org), which gets data from a
 supplier like Mouser and puts it into the InvenTree Database. 
@@ -8,7 +8,7 @@ supplier like Mouser and puts it into the InvenTree Database.
 ## Installation
 
 ```
-pip install git+https://github.com/SergeoLacruz/inventree-supplier-plugin
+pip install git+https://github.com/SergeoLacruz/inventree-supplier-sync
 ```
 
 ## What it does
