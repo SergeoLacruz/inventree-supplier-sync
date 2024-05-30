@@ -11,6 +11,7 @@ from part.models import Part
 from part.models import SupplierPart
 from company.models import Company
 from company.models import SupplierPriceBreak
+from inventree_supplier_sync.version import PLUGIN_VERSION
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -28,7 +29,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     TITLE = "Sync parts with a supplier"
     AUTHOR = "Michael"
     PUBLISH_DATE = "2023-02-16T20:55:08.914461+00:00"
-    VERSION = '0.0.1'
+    VERSION = PLUGIN_VERSION
     DESCRIPTION = 'Syncronize parts with Supplier SKU and price breaks'
     MIN_VERSION = '0.11.0'
 
@@ -36,7 +37,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         'member': {
             'func': 'UpdatePart',
             'schedule': 'I',
-            'minutes': 2,
+            'minutes': 1,
         }
     }
 
@@ -58,12 +59,6 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
             'name': 'Locale',
             'description': 'Here you can set locale string for decimal conversion',
             'default': 'de_DE.UTF-8',
-        },
-        'CREATE_SUPPLIERPARTS': {
-            'name': 'Create Supplierparts',
-            'description': 'Try to create a supplierpart if none exists in the database',
-            'validator': bool,
-            'default': True,
         },
         'AKTPK': {
             'name': 'The actual component',
@@ -100,7 +95,10 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
 #------------------------------------------------------------------------------------------
     def UpdatePart(self, *args, **kwargs):
 
-        Update=int(self.get_setting('AKTPK', cache = False))
+        try:
+            Update = int(self.get_setting('AKTPK', cache=False))
+        except Exception:
+            Update = 1
         logger.info('Running update on pk %i',Update)
 
         # First check if the pk exists. It might have been deleted between the executions
@@ -125,9 +123,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
                 if sp.SKU != 'N/A' and sp.SKU != self.GenericSKU:    
                     Success=self.UpdateSupplierParts(sp)
         else:
-            if self.get_setting('CREATE_SUPPLIERPARTS'):
-                Success=self.CreateSupplierPart(PartToUpdate)
-
+            logger.info('No supplier part found')
         # In case the update was OK we go to the next one. Otherwise we try it again and again...
         if Success:
             Update=self.GetNextPart(AllParts,PartToUpdate).pk
@@ -224,32 +220,6 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         NewPrice=locale.atof(price.strip(conv['currency_symbol']))
         return NewPrice
 
-#----------------------------- CreateSupplierPart ----------------------------------------
-# Here we use a normal search because otherwise the MPN are not found. This means that 
-# might end up with several results. In that case we create a SupplierPart with a 
-# generic SKU and the search link to the supplier. These cases need to be handled manually
-# because we cannot decide which part is the real one. 
-
-    def CreateSupplierPart(self,p):
-        logger.debug('Try to create mouser part for %s',p.IPN)
-        Results, Data=self.GetSupplierData(p.name,'none')
-        Supplier=Company.objects.get(name=self.SupplierName)
-        if Results == -1:
-            raise ConnectionError('Error connecting to Supplier API',Data)
-            return False
-        elif  Results == 0:
-            logger.info('%s reported 0 parts, no suppler part created',self.SupplierName)
-        elif Results == 1:
-            SupplierSKU=Data['Parts'][0]['MouserPartNumber']
-            SupplierLink=Data['Parts'][0]['ProductDetailUrl']
-            sp=SupplierPart.objects.create(part=p, supplier=Supplier, SKU=SupplierSKU, link=SupplierLink)
-            logger.info('%s reported 1 part. Created supplier part with SKU %s',self.SupplierName, SupplierSKU)
-        elif Results>1:
-            SupplierLink=self.SupplierLink+p.name
-            sp=SupplierPart.objects.create(part=p, supplier=Supplier, SKU=self.GenericSKU, link=SupplierLink)
-            logger.info('%s reported %i parts, created generic SKU',self.SupplierName, Results)
-        return True
-
 #----------------------------- UpdateSupplierPart ----------------------------------------
 # Here we use an 'exact' search because we have already the exact SKU in the database. 
 # So there should be exactly one result. In this case we update the price breaks by 
@@ -273,6 +243,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
             logger.info('Lifecycle %s',Data['Parts'][0]['LifecycleStatus'])
             sp.note=Data['Parts'][0]['LifecycleStatus']
             sp.save()
+            logger.info('Lifecycle saved to notes')
             spb=SupplierPriceBreak.objects.filter(part=sp.pk).all()
             for pb in spb:
                 pb.delete()
