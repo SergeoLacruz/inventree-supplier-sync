@@ -3,7 +3,7 @@
 import requests
 import json
 import logging
-import locale
+import re
 
 from plugin import InvenTreePlugin
 from plugin.mixins import ScheduleMixin, SettingsMixin
@@ -42,6 +42,11 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     }
 
     SETTINGS = {
+        'MOUSER_PK': {
+            'name': 'Mouser Supplier ID',
+            'description': 'Primary key of the Mouser supplier',
+            'model': 'company.company',
+        },
         'SUPPLIERKEY': {
             'name': 'Supplier API Key',
             'description': 'Place here your key for the suppliers API',
@@ -54,11 +59,6 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         'PROXIES': {
             'name': 'Proxies',
             'description': 'Access to proxy server if needed',
-        },
-        'LOCALE': {
-            'name': 'Locale',
-            'description': 'Here you can set locale string for decimal conversion',
-            'default': 'de_DE.UTF-8',
         },
         'AKTPK': {
             'name': 'The actual component',
@@ -87,19 +87,31 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
 
     # Set some supplier specific constants
     SupplierName='Mouser'
-    GenericSKU='MouserGeneric'
-    SupplierLink='https://www.mouser.de/c/?q='
 
 #---------------------------- UpdatePart --------------------------------------------------
 # Main function that is called by the scheduler
 #------------------------------------------------------------------------------------------
     def UpdatePart(self, *args, **kwargs):
 
+        
+        company = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
+        logger.info('Company: %i, %s', company.pk, company.name)
+        try:
+            update_pk = int(self.get_setting('AKTPK', cache=False))
+        except Exception:
+            update_pk = 1
+        logger.info('Running update on pk %i',update_pk)
+        all_supplier_parts = SupplierPart.objects.filter(supplier=company) # int((self.get_setting('MOUSER_PK'))i)
+
+
         try:
             Update = int(self.get_setting('AKTPK', cache=False))
         except Exception:
             Update = 1
         logger.info('Running update on pk %i',Update)
+
+
+
 
         # First check if the pk exists. It might have been deleted between the executions
         # ore someone might have changed the AKTPK manually. We go back to start in that case.
@@ -120,7 +132,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         SupplierParts=self.GetExistingSupplierParts(PartToUpdate.supplier_parts)
         if len(SupplierParts)>0:
             for sp in SupplierParts:
-                if sp.SKU != 'N/A' and sp.SKU != self.GenericSKU:    
+                if sp.SKU != 'N/A':    
                     Success=self.UpdateSupplierParts(sp)
         else:
             logger.info('No supplier part found')
@@ -213,12 +225,20 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
 
     # We need a supplier specific modification to the price answer because they put 
     # funny things inside like an EURO sign into the number and use , instead of . 
-    def ReformatPrice(self,price):
-        locale.setlocale(locale.LC_NUMERIC, self.get_setting('LOCALE') )
-        locale.setlocale(locale.LC_MONETARY, self.get_setting('LOCALE'))
-        conv = locale.localeconv()
-        NewPrice=locale.atof(price.strip(conv['currency_symbol']))
-        return NewPrice
+    def reformat_mouser_price(self, price):
+        logger.info('Price %s',price)
+        price = price.replace(',', '.')
+        non_decimal = re.compile(r'[^\d.]+')
+        price = float(non_decimal.sub('', price))
+        logger.info('New Price %s',price)
+        return price
+
+#    def ReformatPrice(self,price):
+#        locale.setlocale(locale.LC_NUMERIC, self.get_setting('LOCALE') )
+#        locale.setlocale(locale.LC_MONETARY, self.get_setting('LOCALE'))
+#        conv = locale.localeconv()
+#        NewPrice=locale.atof(price.strip(conv['currency_symbol']))
+#        return NewPrice
 
 #----------------------------- UpdateSupplierPart ----------------------------------------
 # Here we use an 'exact' search because we have already the exact SKU in the database. 
@@ -248,7 +268,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
             for pb in spb:
                 pb.delete()
             for pb in Data['Parts'][0]['PriceBreaks']:
-                NewPrice=self.ReformatPrice(pb['Price'])
+                NewPrice=self.reformat_mouser_price(pb['Price'])
                 SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'],price=NewPrice)
         elif Results>1:
             logger.warning('%s reported %i parts. No update', self.SupplierName, Results)
