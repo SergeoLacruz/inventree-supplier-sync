@@ -61,7 +61,7 @@ usually finds exactly one result. In that case all price breaks are replaced wit
 It might happen that the search does not return any result. In that case the part has been
 removed from Mouser and the supplier part is deleted. 
 
-## Things to to
+## Things to do
 Actually you need to scroll through the log to find problems with the received data. This
 is not comfortable. 
 
