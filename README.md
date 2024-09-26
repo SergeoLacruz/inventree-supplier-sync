@@ -68,5 +68,5 @@ is not comfortable.
 Error handling is not good yet. In case Mouser returns garbage the plugin might just crash 
 because keys in the json might be missing
 
-E.g. Mouser sends more data like availability, packaging and so on. I may make sense to 
+E.g. Mouser sends more data like availability, packaging and so on. It may make sense to 
 include these into the properties to update.
