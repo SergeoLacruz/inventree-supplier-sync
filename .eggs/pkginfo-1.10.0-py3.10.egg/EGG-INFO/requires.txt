@@ -1,5 +1,0 @@
-
-[testing]
-pytest
-pytest-cov
-wheel
