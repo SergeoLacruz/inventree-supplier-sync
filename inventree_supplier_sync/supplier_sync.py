@@ -85,16 +85,13 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
     logging.getLogger("requests").setLevel(logging.CRITICAL)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-    # Set some supplier specific constants
-    SupplierName='Mouser'
-
 #---------------------------- UpdatePart --------------------------------------------------
 # Main function that is called by the scheduler
 #------------------------------------------------------------------------------------------
     def UpdatePart(self, *args, **kwargs):
 
-        
         company = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
+        SupplierName = company.name
         logger.info('Company: %i, %s', company.pk, company.name)
         try:
             update_pk = int(self.get_setting('AKTPK', cache=False))
@@ -109,9 +106,6 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         except Exception:
             Update = 1
         logger.info('Running update on pk %i',Update)
-
-
-
 
         # First check if the pk exists. It might have been deleted between the executions
         # ore someone might have changed the AKTPK manually. We go back to start in that case.
@@ -129,11 +123,11 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
             Update=self.GetNextPart(AllParts,PartToUpdate).pk
             PartToUpdate=Part.objects.get(pk=Update)
         Success=True
-        SupplierParts=self.GetExistingSupplierParts(PartToUpdate.supplier_parts)
+        SupplierParts=self.GetExistingSupplierParts(PartToUpdate.supplier_parts, SupplierName)
         if len(SupplierParts)>0:
             for sp in SupplierParts:
                 if sp.SKU != 'N/A':    
-                    Success=self.UpdateSupplierParts(sp)
+                    Success=self.UpdateSupplierParts(sp, SupplierName)
         else:
             logger.info('No supplier part found')
         # In case the update was OK we go to the next one. Otherwise we try it again and again...
@@ -162,11 +156,11 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
 #----------------------- GetExistingSupplierParts -----------------------------------------
 # Returns all existing supplier parts where the supplier name is SupplierName
 
-    def GetExistingSupplierParts(self,sp):
+    def GetExistingSupplierParts(self,sp, SupplierName):
         SupplierParts=[]
 
         for ssp in sp.all():
-            if ssp.supplier.name == self.SupplierName:
+            if ssp.supplier.name == SupplierName:
                 SupplierParts.append(ssp)
         return SupplierParts        
 
@@ -249,17 +243,17 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
 # In case we get several hits something might have gone wrong with the search. We log a warning.
 # These cases need to be cleared manually. 
 
-    def UpdateSupplierParts(self,sp):
+    def UpdateSupplierParts(self,sp,SupplierName):
         logger.debug('Updating mouser part for %s',sp.SKU)
         Results, Data=self.GetSupplierData(sp.SKU,'exact')
         if Results == -1:
             raise ConnectionError('Error connecting to Supplier API',Data)
             return False
         elif Results == 0:
-            logger.info('SKU search on %s reported 0 parts. Deleting SupplierPart', self.SupplierName)
+            logger.info('SKU search on %s reported 0 parts. Deleting SupplierPart', SupplierName)
             sp.delete()
         elif Results == 1:
-            logger.info('%s reported 1 part. Updating price breaks', self.SupplierName)
+            logger.info('%s reported 1 part. Updating price breaks', SupplierName)
             logger.info('Lifecycle %s',Data['Parts'][0]['LifecycleStatus'])
             sp.note=Data['Parts'][0]['LifecycleStatus']
             sp.save()
@@ -271,6 +265,6 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
                 NewPrice=self.reformat_mouser_price(pb['Price'])
                 SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'],price=NewPrice)
         elif Results>1:
-            logger.warning('%s reported %i parts. No update', self.SupplierName, Results)
+            logger.warning('%s reported %i parts. No update', SupplierName, Results)
         return True
 
