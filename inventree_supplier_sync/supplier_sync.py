@@ -98,8 +98,6 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         except Exception:
             update_pk = 1
         logger.info('Running update on pk %i',update_pk)
-        all_supplier_parts = SupplierPart.objects.filter(supplier=company) # int((self.get_setting('MOUSER_PK'))i)
-
 
         try:
             Update = int(self.get_setting('AKTPK', cache=False))
