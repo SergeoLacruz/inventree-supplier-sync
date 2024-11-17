@@ -1,4 +1,4 @@
-# Plugin that syncronises parts with the Mouser database. 
+# Plugin that syncronises parts with the Mouser database.
 
 import requests
 import json
@@ -37,7 +37,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         'member': {
             'func': 'UpdatePart',
             'schedule': 'I',
-            'minutes': 1,
+            'minutes': 3,
         }
     }
 
@@ -66,7 +66,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         },
     }
 
-    #------------------------- get_settings_content -------------------------------------    
+    #------------------------- get_settings_content -------------------------------------
     # Some nice info for the user that will be shown in the plugin's settings page
 
     def get_settings_content(self, request):
@@ -99,41 +99,35 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
             update_pk = 1
         logger.info('Running update on pk %i',update_pk)
 
-        try:
-            Update = int(self.get_setting('AKTPK', cache=False))
-        except Exception:
-            Update = 1
-        logger.info('Running update on pk %i',Update)
-
         # First check if the pk exists. It might have been deleted between the executions
         # ore someone might have changed the AKTPK manually. We go back to start in that case.
         AllParts=Part.objects.all()
         AllPartsPK=[]
         for p in AllParts:
             AllPartsPK.append(p.pk)
-        if Update not in AllPartsPK:
-            Update=AllParts[0].pk
+        if update_pk not in AllPartsPK:
+            update_pk=AllParts[0].pk
 
-        PartToUpdate=Part.objects.get(pk=Update)
+        part_to_update=Part.objects.get(pk=update_pk)
 
-        # In case the part shall not be updated go to next one to not loose the slot. 
-        while not self.ShoudBeUpdated(PartToUpdate):
-            Update=self.GetNextPart(AllParts,PartToUpdate).pk
-            PartToUpdate=Part.objects.get(pk=Update)
+        # In case the part shall not be updated go to next one to not loose the slot.
+        while not self.ShoudBeUpdated(part_to_update):
+            update_pk=self.GetNextPart(AllParts,part_to_update).pk
+            part_to_update=Part.objects.get(pk=update_pk)
         Success=True
-        SupplierParts=self.GetExistingSupplierParts(PartToUpdate.supplier_parts, SupplierName)
+        SupplierParts=self.GetExistingSupplierParts(part_to_update.supplier_parts, SupplierName)
         if len(SupplierParts)>0:
             for sp in SupplierParts:
-                if sp.SKU != 'N/A':    
+                if sp.SKU != 'N/A':
                     Success=self.UpdateSupplierParts(sp, SupplierName)
         else:
             logger.info('No supplier part found')
         # In case the update was OK we go to the next one. Otherwise we try it again and again...
         if Success:
-            Update=self.GetNextPart(AllParts,PartToUpdate).pk
-            self.set_setting('AKTPK',str(Update))
+            update_pk=self.GetNextPart(AllParts,part_to_update).pk
+            self.set_setting('AKTPK',str(update_pk))
 
- 
+
 #------------------------------------------------------------------------------------------
 #------------------------------ GetNextPart -----------------------------------------------
 # Get the next part to be updated.
@@ -160,13 +154,13 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
         for ssp in sp.all():
             if ssp.supplier.name == SupplierName:
                 SupplierParts.append(ssp)
-        return SupplierParts        
+        return SupplierParts
 
 #------------------------------- ShoudBeUpdated -----------------------------------------
 # Returns false if the part is excluded from update for various reasons. See code.
 # A complete category can be excluded by putting json:
 # {"supplier_sync": {"exclude": "True"}}
-# into the category meta data field. 
+# into the category meta data field.
 
     def ShoudBeUpdated(self,p):
         try:
@@ -188,7 +182,7 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
 
 #------------------------------- GetSupplierData -----------------------------------------
 # This creates the request sends it to the supplier API and receives the result
-# This part is supplier specific. 
+# This part is supplier specific.
 
     def GetSupplierData(self,Keyword, Options):
 
@@ -200,11 +194,10 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
               }
             }
             Response=requests.post(self.get_setting('SUPPLIERLINK')+self.get_setting('SUPPLIERKEY'),
-                                   proxies=self.get_setting('PROXIES'), 
-                                   data=json.dumps(part), 
+                                   proxies=self.get_setting('PROXIES'),
+                                   data=json.dumps(part),
                                    headers=headers)
             JsonResponse=Response.json()
-#            print(JsonResponse)
             try:
                 if len(JsonResponse['Errors']) > 0:
                     logger.error('Error received from supplier API: %s', JsonResponse['Errors'][0]['Message'])
@@ -215,31 +208,23 @@ class SupplierSyncPlugin(ScheduleMixin, SettingsMixin, InvenTreePlugin):
                 logger.error('No valid answer received from supplier')
                 return -1, 'No valid answer received from supplier'
 
-    # We need a supplier specific modification to the price answer because they put 
-    # funny things inside like an EURO sign into the number and use , instead of . 
+    # We need a supplier specific modification to the price answer because they put
+    # funny things inside like an EURO sign into the number and use , instead of .
     def reformat_mouser_price(self, price):
-        logger.info('Price %s',price)
         price = price.replace(',', '.')
         non_decimal = re.compile(r'[^\d.]+')
         price = float(non_decimal.sub('', price))
         logger.info('New Price %s',price)
         return price
 
-#    def ReformatPrice(self,price):
-#        locale.setlocale(locale.LC_NUMERIC, self.get_setting('LOCALE') )
-#        locale.setlocale(locale.LC_MONETARY, self.get_setting('LOCALE'))
-#        conv = locale.localeconv()
-#        NewPrice=locale.atof(price.strip(conv['currency_symbol']))
-#        return NewPrice
-
 #----------------------------- UpdateSupplierPart ----------------------------------------
-# Here we use an 'exact' search because we have already the exact SKU in the database. 
-# So there should be exactly one result. In this case we update the price breaks by 
-# deleting the existing ones and creating new ones. 
+# Here we use an 'exact' search because we have already the exact SKU in the database.
+# So there should be exactly one result. In this case we update the price breaks by
+# deleting the existing ones and creating new ones.
 # In case SKU does not exist # the supplier might have canceled the part. So we delete the
-# SupplierPart. 
+# SupplierPart.
 # In case we get several hits something might have gone wrong with the search. We log a warning.
-# These cases need to be cleared manually. 
+# These cases need to be cleared manually.
 
     def UpdateSupplierParts(self,sp,SupplierName):
         logger.debug('Updating mouser part for %s',sp.SKU)
