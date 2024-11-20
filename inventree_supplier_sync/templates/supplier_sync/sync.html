@@ -1,5 +1,15 @@
 {% load i18n %}
 
+<script>
+async function JDelete(pk){
+    response = await fetch( "{% url 'plugin:suppliersync:delete-entry' '9999' %}"
+	                           .replace("9999", pk)
+	                  );
+    console.log(pk)
+    location.reload();
+}
+</script>
+
 <table class='table table-condensed'>
 
 <thead>
@@ -11,6 +21,7 @@
 	<th >{% trans "New value" %} </th>
 	<th >{% trans "Comment" %} </th>
 	<th >{% trans "Date" %} </th>
+	<th >{% trans "Action" %} </th>
     </tr>
 </thead>
 <tbody>
@@ -20,9 +31,14 @@
 	<td> <a href="{{ sub.part.pk }}/">{{ sub.part.IPN }}</a> </td>
 	<td> {{ sub.change_type }} </td>
 	<td> {{ sub.old_value }} </td>
+	{% if sub.change_type == "add" %}
+	<td> <a href="{{ sub.link }} " target=_blank>{{ sub.new_value }}</a> </td>
+	{% else %}
 	<td> {{ sub.new_value }} </td>
+	{% endif %}
 	<td> {{ sub.comment }} </td>
 	<td> {{ sub.updated_at|date:"M d, Y" }} </td>
+        <td> <button type='button' class='btn btn-outline-secondary' title='{% trans "Delete" %}' id='part-image-delete' onclick="JDelete({{ sub.pk }})"><span class='fas fa-trash-alt icon-red'></span></button></td>
     <tr>
     {% endfor %}
 </tbody>

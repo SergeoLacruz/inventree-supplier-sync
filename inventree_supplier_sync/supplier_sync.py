@@ -1,14 +1,16 @@
 # Plugin that syncronises parts with the Mouser database.
+from django.http import HttpResponse
+from django.urls import re_path
 
 import logging
 
 from plugin import InvenTreePlugin
-from plugin.mixins import ScheduleMixin, SettingsMixin, AppMixin, PanelMixin
+from plugin.mixins import ScheduleMixin, SettingsMixin, AppMixin, PanelMixin, UrlsMixin
 from part.models import Part
 from company.models import Company
 from company.models import SupplierPriceBreak
 from inventree_supplier_sync.version import PLUGIN_VERSION
-from inventree_supplier_panel.mouser import Mouser
+from inventree_supplier_sync.mouser import Mouser
 from .models import SupplierPartChange
 from part.views import PartIndex
 
@@ -22,7 +24,7 @@ logger.addHandler(fh)
 
 
 # ---------------------------- SupplierSyncPlugin -----------------------------
-class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, InvenTreePlugin):
+class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, InvenTreePlugin, UrlsMixin):
 
     NAME = "SupplierSyncPlugin"
     SLUG = "suppliersync"
@@ -37,7 +39,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 3,
+            'minutes': 1,
         }
     }
 
@@ -61,7 +63,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         },
         'AKTPK': {
             'name': 'The actual component',
-            'description': 'The next comopnent to be updated',
+            'description': 'The next component to be updated',
         },
     }
 
@@ -94,18 +96,15 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                            'content_template': 'supplier_sync/sync.html'})
         return panels
 
-# ---------------------------- update_part ------------------------------------
-# Main function that is called by the scheduler
-# -----------------------------------------------------------------------------
-    def update_part(self, *args, **kwargs):
+    def setup_urls(self):
+            return [
+                re_path(r'deleteentry/(?P<key>\d+)/', self.delete_entry, name='delete-entry'),
+            ]
 
-        #       bla = SupplierPartChange.objects.all()
-        #        for qay in bla:
-        #            print('PK:'. qay.pk)
-        #        sel = SupplierPartChange.objects.filter(pk=3)[0]
-        #        print(sel.old_value)
-        #        sel.old_value = 'Hallo'
-        #        sel.save()
+    # ---------------------------- update_part ------------------------------------
+    # Main function that is called by the scheduler
+    # -----------------------------------------------------------------------------
+    def update_part(self, *args, **kwargs):
 
         company = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
         try:
@@ -209,19 +208,19 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 
     def update_supplier_parts(self, part_to_update, sp, supplier_name):
         logger.info('Updating Mouser part for %s', sp.SKU)
-        results, data = Mouser.get_mouser_partdata(self, sp.SKU, 'exact')
-        if results == -1:
+        data = Mouser.get_mouser_partdata(self, sp.SKU, 'exact')
+        if data['number_of_results'] == -1:
             logger.info('SKU search on %s reported error. ', supplier_name)
             return False
 #        if results == -2:
 #            SupplierPartChange.objects.create(part=part_to_update, change_type="error", old_value='', new_value='', comment='Illegal character in MPN')
 #            logger.info('illegal character reported')
 #            return True
-        if results == 0:
+        if data['number_of_results'] == 0:
             logger.info('SKU search on %s reported 0 parts. ', supplier_name)
             SupplierPartChange.objects.create(part=part_to_update, change_type="deleted", comment='Part has been deleted from suppliers catalog')
             return True
-        if results == 1:
+        if data['number_of_results'] == 1:
             logger.info('%s reported 1 part. Updating price breaks and lifecycle', supplier_name)
             life_cycle_status = data['lifecycle_status']
             logger.info('Lifecycle %s', life_cycle_status)
@@ -235,15 +234,16 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                 pb.delete()
             for pb in data['price_breaks']:
                 SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'], price=pb['Price'])
-        elif results > 1:
-            logger.info('%s reported %i parts. No update', supplier_name, results)
+        elif data['number_of_results'] > 1:
+            logger.info('%s reported %i parts. No update', supplier_name, data['number_of_results'])
         return True
 
 # ----------------------------- log_new_supplierpart --------------------------
 
     def log_new_supplierpart(self, p):
         logger.info('Seach Mouser for %s', p.IPN)
-        number_of_results, data = Mouser.get_mouser_partdata(self, p.name, 'none')
+        data = Mouser.get_mouser_partdata(self, p.name, 'none')
+        number_of_results = data['number_of_results']
         if number_of_results == -1:
             raise ConnectionError('Error connecting to Supplier API', data)
             return False
@@ -259,11 +259,20 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                 SupplierPartChange.objects.create(part=p,
                                                   change_type="add",
                                                   comment=f'{number_of_results} supplier parts reported',
-                                                  new_value=data['SKU'] + '...')
+                                                  link=f'https://www.mouser.de/c/?q={p.name}',
+                                                  new_value=data['SKU'] + ' ...')
             else:
                 if data['SKU'] != 'N/A':
                     SupplierPartChange.objects.create(part=p,
                                                       change_type="add",
                                                       comment=f'{number_of_results} supplier part available',
+                                                      link=data['URL'],
                                                       new_value=data['SKU'])
         return True
+
+# ------------------------------------- delete_entry -------------------------
+    def delete_entry(self, request, key):
+
+        entry_to_delete = SupplierPartChange.objects.filter(pk=key)
+        entry_to_delete.delete()
+        return HttpResponse('OK')

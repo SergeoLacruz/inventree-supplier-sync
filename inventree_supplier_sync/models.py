@@ -11,4 +11,5 @@ class SupplierPartChange(models.Model):
     old_value = models.CharField(max_length=100, null=True)
     new_value = models.CharField(max_length=100, null=True)
     comment = models.CharField(max_length=250, null=True)
+    link = models.CharField(max_length=250, null=True)
     updated_at = models.DateTimeField(auto_now=True)

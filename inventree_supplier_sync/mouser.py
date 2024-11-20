@@ -20,17 +20,21 @@ class Mouser():
         header = {'Content-type': 'application/json', 'Accept': 'application/json'}
         response = Wrappers.post_request(self, json.dumps(part), url, header)
         if response.status_code != 200:
-            return -1, part_data
+            part_data['number_of_results'] = -1
+            return part_data
         response = response.json()
         if response['Errors'] != []:
             self.status_code = 'Error, '
             self.message = response['Errors']
-            return -1, part_data
+            part_data['number_of_results'] = -1
+            return part_data
         number_of_results = int(response['SearchResults']['NumberOfResult'])
         if number_of_results == 0:
             self.status_code = 'Error, '
             self.message = 'Part not found: ' + sku
-            return 0, part_data
+            part_data['number_of_results'] = number_of_results
+            return part_data
+        part_data['number_of_results'] = number_of_results
         part_data['SKU'] = response['SearchResults']['Parts'][0]['MouserPartNumber']
         part_data['MPN'] = response['SearchResults']['Parts'][0]['ManufacturerPartNumber']
         part_data['URL'] = response['SearchResults']['Parts'][0]['ProductDetailUrl']
@@ -42,13 +46,13 @@ class Mouser():
         if number_of_results > 1:
             self.status_code = 'Error, '
             self.message = 'Multiple parts found. Check supplier part number: ' + sku
-            return number_of_results, part_data
+            return part_data
         for pb in response['SearchResults']['Parts'][0]['PriceBreaks']:
             new_price = Mouser.reformat_mouser_price(self, pb['Price'])
             part_data['price_breaks'].append({'Quantity': pb['Quantity'], 'Price': new_price, 'Currency': pb['Currency']})
         self.status_code = 200
         self.message = 'OK'
-        return 1, part_data
+        return part_data
 
     # ------------------------------- get_mouser_package --------------------------
     # Extracts the available packages from the Mouser part data json
