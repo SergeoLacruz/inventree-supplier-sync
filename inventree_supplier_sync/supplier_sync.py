@@ -7,8 +7,7 @@ import logging
 from plugin import InvenTreePlugin
 from plugin.mixins import ScheduleMixin, SettingsMixin, AppMixin, PanelMixin, UrlsMixin
 from part.models import Part
-from company.models import Company
-from company.models import SupplierPriceBreak
+from company.models import Company, SupplierPriceBreak, ManufacturerPart, SupplierPart
 from inventree_supplier_sync.version import PLUGIN_VERSION
 from inventree_supplier_sync.mouser import Mouser
 from .models import SupplierPartChange
@@ -39,7 +38,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 1,
+            'minutes': 3,
         }
     }
 
@@ -97,9 +96,10 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         return panels
 
     def setup_urls(self):
-            return [
-                re_path(r'deleteentry/(?P<key>\d+)/', self.delete_entry, name='delete-entry'),
-            ]
+        return [
+            re_path(r'deleteentry/(?P<key>\d+)/', self.delete_entry, name='delete-entry'),
+            re_path(r'addpart/(?P<key>\d+)/', self.add_supplierpart, name='add-part'),
+        ]
 
     # ---------------------------- update_part ------------------------------------
     # Main function that is called by the scheduler
@@ -136,8 +136,8 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                 if sp.SKU != 'N/A':
                     success = self.update_supplier_parts(part_to_update, sp, company.name)
                 else:
-                    logger.info('Supplier part has no valid SKU. Skip')
-                    success = True
+                    logger.info('Supplier part has no valid SKU. Try to find new ones')
+                    success = self.log_new_supplierpart(part_to_update)
         else:
             logger.info('No supplier part found. Try to find new ones')
             success = self.log_new_supplierpart(part_to_update)
@@ -223,12 +223,11 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         if data['number_of_results'] == 1:
             logger.info('%s reported 1 part. Updating price breaks and lifecycle', supplier_name)
             life_cycle_status = data['lifecycle_status']
-            logger.info('Lifecycle %s', life_cycle_status)
             if sp.note != life_cycle_status:
                 SupplierPartChange.objects.create(part=part_to_update, change_type="Life cycle", old_value=sp.note, new_value=life_cycle_status)
                 sp.note = life_cycle_status
                 sp.save()
-                logger.info('Lifecycle saved to notes')
+                logger.info('New lifecycle saved to notes')
             spb = SupplierPriceBreak.objects.filter(part=sp.pk).all()
             for pb in spb:
                 pb.delete()
@@ -260,13 +259,15 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                                                   change_type="add",
                                                   comment=f'{number_of_results} supplier parts reported',
                                                   link=f'https://www.mouser.de/c/?q={p.name}',
+                                                  number_of_parts=number_of_results,
                                                   new_value=data['SKU'] + ' ...')
             else:
                 if data['SKU'] != 'N/A':
                     SupplierPartChange.objects.create(part=p,
                                                       change_type="add",
-                                                      comment=f'{number_of_results} supplier part available',
+                                                      comment=f'{number_of_results} supplier part reported',
                                                       link=data['URL'],
+                                                      number_of_parts=number_of_results,
                                                       new_value=data['SKU'])
         return True
 
@@ -275,4 +276,39 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 
         entry_to_delete = SupplierPartChange.objects.filter(pk=key)
         entry_to_delete.delete()
+        return HttpResponse('OK')
+
+# ---------------------------- add_supplierpart -------------------------------
+    def add_supplierpart(self, request, key):
+
+        sync_object = SupplierPartChange.objects.filter(pk=key)[0]
+        part = sync_object.part
+        supplier = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
+
+        manufacturer_part = ManufacturerPart.objects.filter(part=part.pk)
+        if len(manufacturer_part) == 0:
+            return HttpResponse('Error')
+
+        part_data = Mouser.get_mouser_partdata(self, part.name, 'exact')
+        if part_data['number_of_results'] == -1:
+            return HttpResponse('Error')
+
+        supplier_parts = SupplierPart.objects.filter(part=part.pk)
+        for sp in supplier_parts:
+            if sp.SKU.strip() == part_data['SKU'].strip():
+                return HttpResponse('Error')
+
+        sp = SupplierPart.objects.create(part=part,
+                                         supplier=supplier,
+                                         manufacturer_part=manufacturer_part[0],
+                                         SKU=part_data['SKU'],
+                                         link=part_data['URL'],
+                                         note=part_data['lifecycle_status'],
+                                         packaging=part_data['package'],
+                                         pack_quantity=part_data['pack_quantity'],
+                                         description=part_data['description'],
+                                         )
+        for pb in part_data['price_breaks']:
+            SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'], price=pb['Price'], price_currency=pb['Currency'])
+        sync_object.delete()
         return HttpResponse('OK')
