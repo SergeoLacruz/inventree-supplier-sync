@@ -2,4 +2,17 @@ from django.contrib import admin
 
 from .models import SupplierPartChange
 
-admin.site.register(SupplierPartChange)
+
+@admin.register(SupplierPartChange)
+class SupplierPartChangeAdmin(admin.ModelAdmin):
+    """Class for managing the SupplierPartChange model via the admin interface."""
+
+    list_display = (
+        'part',
+        'change_type',
+        'comment'
+    )
+
+    search_fields = [
+        'change_type',
+    ]

@@ -26,26 +26,26 @@ async function JAddPart(pk){
 	<th> {% trans "IPN" %} </th>
 	<th> {% trans "Change" %} </th>
 	<th> {% trans "Old value" %} </th>
-	<th> {% trans "New value" %} </th>
-	<th> {% trans "Comment" %} </th>
-	<th> {% trans "Date" %} </th>
-	<th> {% trans "Action" %} </th>
+	<th >{% trans "New value" %} </th>
+	<th >{% trans "Comment" %} </th>
+	<th >{% trans "Date" %} </th>
+	<th >{% trans "Action" %} </th>
     </tr>
 </thead>
 <tbody>
     {% for sub in plugin.sync_objects %}
     <tr>
         <td> {{ sub.pk }} </td>
-        <td> <a href="{{ sub.part.pk }}/">{{ sub.part.IPN }}</a> </td>
-        <td> {{ sub.change_type }} </td>
-        <td> {{ sub.old_value }} </td>
-        {% if sub.change_type == "add" %}
-        <td> <a href="{{ sub.link }} " target=_blank>{{ sub.new_value }}</a> </td>
-        {% else %}
-        <td> {{ sub.new_value }} </td>
-        {% endif %}
-        <td> {{ sub.comment }} </td>
-        <td> {{ sub.updated_at|date:"M d, Y" }} </td>
+	<td> <a href="{{ sub.part.pk }}/">{{ sub.part.IPN }}</a> </td>
+	<td> {{ sub.change_type }} </td>
+	<td> {{ sub.old_value }} </td>
+	{% if sub.change_type == "add" %}
+	<td> <a href="{{ sub.link }} " target=_blank>{{ sub.new_value }}</a> </td>
+	{% else %}
+	<td> {{ sub.new_value }} </td>
+	{% endif %}
+	<td> {{ sub.comment }} </td>
+	<td> {{ sub.updated_at|date:"M d, Y" }} </td>
         <td> 
 	    <button type='button' class='btn btn-outline-secondary' title='{% trans "Delete" %}' onclick="JDelete({{ sub.pk }})">
 		    <span class='fas fa-trash-alt icon-red'></span>
