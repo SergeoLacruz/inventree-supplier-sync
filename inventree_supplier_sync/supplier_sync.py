@@ -287,15 +287,22 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 
         manufacturer_part = ManufacturerPart.objects.filter(part=part.pk)
         if len(manufacturer_part) == 0:
+            logger.error('Part has no manufactuer part')
             return HttpResponse('Error')
 
-        part_data = Mouser.get_mouser_partdata(self, part.name, 'exact')
+        part_data = Mouser.get_mouser_partdata(self, sync_object.new_value, 'exact')
+
         if part_data['number_of_results'] == -1:
+            logger.error('Connection error')
+            return HttpResponse('Error')
+        if part_data['number_of_results'] == 0:
+            logger.error('No parts returned')
             return HttpResponse('Error')
 
         supplier_parts = SupplierPart.objects.filter(part=part.pk)
         for sp in supplier_parts:
             if sp.SKU.strip() == part_data['SKU'].strip():
+                logger.error('Part has already a supplier part')
                 return HttpResponse('Error')
 
         sp = SupplierPart.objects.create(part=part,
