@@ -46,4 +46,5 @@ setuptools.setup(
             "SupplierSyncPlugin = inventree_supplier_sync.supplier_sync:SupplierSyncPlugin"
         ]
     },
+    include_package_data=True,
 )
