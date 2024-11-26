@@ -52,6 +52,12 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             'name': 'Supplier API Key new',
             'description': 'Place here your key for the suppliers API',
         },
+        'ENABLE_SYNC': {
+            'name': 'Enable the plugin',
+            'description': 'Allow the regular synchronisation',
+            'default': True,
+            'validator': bool,
+        },
         'PROXY_CON': {
             'name': 'Proxy CON',
             'description': 'Connection protocol to proxy server if needed e.g. https',
@@ -106,6 +112,8 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
     # -----------------------------------------------------------------------------
     def update_part(self, *args, **kwargs):
 
+        if not self.get_setting('ENABLE_SYNC'):
+            return
         company = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
         try:
             update_pk = int(self.get_setting('AKTPK', cache=False))
