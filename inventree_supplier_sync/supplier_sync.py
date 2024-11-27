@@ -38,7 +38,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 3,
+            'minutes': 5,
         }
     }
 
@@ -251,13 +251,20 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         logger.info('Seach Mouser for %s', p.IPN)
         data = Mouser.get_mouser_partdata(self, p.name, 'none')
         number_of_results = data['number_of_results']
-        if number_of_results == -1:
+        if data['error_status'] == 'ConnectionError':
             raise ConnectionError('Error connecting to Supplier API', data)
             return False
-#        if number_of_results == -2:
-#            SupplierPartChange.objects.create(part=p, change_type="error", old_value='', new_value='', comment='Illegal character in MPN')
-#            logger.info('Illegal character reported')
-#            return True
+        if data['error_status'] == 'InvalidAuthorization':
+            logger.info('Invalid Authorizaion')
+            return False
+        if data['error_status'] == 'InvalidCharacters':
+            SupplierPartChange.objects.create(part=p,
+                                              change_type="error",
+                                              old_value='', 
+                                              new_value='',
+                                              comment='Illegal character in MPN')
+            logger.info('Illegal character reported')
+            return True
         if number_of_results == 0:
             logger.info('Mouser reported 0 parts, nothing to do!')
         else:

@@ -19,21 +19,27 @@ class Mouser():
         url = 'https://api.mouser.com/api/v1.0/search/partnumber?apiKey=' + self.get_setting('MOUSERSEARCHKEY')
         header = {'Content-type': 'application/json', 'Accept': 'application/json'}
         response = Wrappers.post_request(self, json.dumps(part), url, header)
-        if response.status_code != 200:
+        try:
+            response = response.json()
+        except Exception:
+            part_data['error_status'] = 'ConnectionError'
             part_data['number_of_results'] = -1
             return part_data
-        response = response.json()
         if response['Errors'] != []:
-            self.status_code = 'Error, '
-            self.message = response['Errors']
-            part_data['number_of_results'] = -1
-            return part_data
+            if response['Errors'][0]['Code'] == 'InvalidCharacters':
+                part_data['error_status'] = 'InvalidCharacters'
+                part_data['number_of_results'] = -1
+                return part_data
+            if response['Errors'][0]['Code'] == 'Invalid':
+                part_data['error_status'] = 'InvalidAuthorization'
+                part_data['number_of_results'] = -1
+                return part_data
         number_of_results = int(response['SearchResults']['NumberOfResult'])
         if number_of_results == 0:
-            self.status_code = 'Error, '
-            self.message = 'Part not found: ' + sku
+            part_data['error_status'] = f'Part not found: {sku}'
             part_data['number_of_results'] = number_of_results
             return part_data
+        part_data['error_status'] = 'OK'
         part_data['number_of_results'] = number_of_results
         part_data['SKU'] = response['SearchResults']['Parts'][0]['MouserPartNumber']
         part_data['MPN'] = response['SearchResults']['Parts'][0]['ManufacturerPartNumber']
