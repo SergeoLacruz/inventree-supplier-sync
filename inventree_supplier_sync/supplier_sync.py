@@ -70,6 +70,10 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             'name': 'The actual component',
             'description': 'The next component to be updated',
         },
+        'FAILCOUNT': {
+            'name': 'Failure count',
+            'description': 'Counts how many accesses to the supplier failed',
+        },
     }
 
     # ------------------------- get_settings_content ---------------------------
@@ -86,6 +90,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         <li>Put key into settings</li>
         <li>Put link to the API into settings</li>
         <li>Enjoy</li>
+        </ol>
         """
 
     # silence the requests messages
@@ -102,6 +107,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         return panels
 
     def setup_urls(self):
+        self.set_setting('FAILCOUNT', str(0))
         return [
             re_path(r'deleteentry/(?P<key>\d+)/', self.delete_entry, name='delete-entry'),
             re_path(r'addpart/(?P<key>\d+)/', self.add_supplierpart, name='add-part'),
@@ -151,9 +157,17 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             success = self.log_new_supplierpart(part_to_update)
 
         # In case the update was OK we go to the next one. Otherwise we try it again and again...
+        fail_counter = int(self.get_setting('FAILCOUNT', cache=False))
         if success:
             update_pk = self.get_next_part(all_parts, part_to_update).pk
             self.set_setting('AKTPK', str(update_pk))
+            fail_counter = 0
+            self.set_setting('FAILCOUNT', str(fail_counter))
+        else:
+            fail_counter = fail_counter + 1
+            self.set_setting('FAILCOUNT', str(fail_counter))
+        if fail_counter > 10:
+            self.set_setting('ENABLE_SYNC', False)
 
 # ------------------------------ get_next_part --------------------------------
 # Get the next part to be updated. Returns part object.
@@ -220,10 +234,6 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         if data['number_of_results'] == -1:
             logger.info('SKU search on %s reported error. ', supplier_name)
             return False
-#        if results == -2:
-#            SupplierPartChange.objects.create(part=part_to_update, change_type="error", old_value='', new_value='', comment='Illegal character in MPN')
-#            logger.info('illegal character reported')
-#            return True
         if data['number_of_results'] == 0:
             logger.info('SKU search on %s reported 0 parts. ', supplier_name)
             SupplierPartChange.objects.create(part=part_to_update, change_type="deleted", comment='Part has been deleted from suppliers catalog')
@@ -260,7 +270,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         if data['error_status'] == 'InvalidCharacters':
             SupplierPartChange.objects.create(part=p,
                                               change_type="error",
-                                              old_value='', 
+                                              old_value='',
                                               new_value='',
                                               comment='Illegal character in MPN')
             logger.info('Illegal character reported')
