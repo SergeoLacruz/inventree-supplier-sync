@@ -38,7 +38,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 5,
+            'minutes': 1,
         }
     }
 
@@ -111,6 +111,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         return [
             re_path(r'deleteentry/(?P<key>\d+)/', self.delete_entry, name='delete-entry'),
             re_path(r'addpart/(?P<key>\d+)/', self.add_supplierpart, name='add-part'),
+            re_path(r'ignorepart/(?P<key>\d+)/', self.ignore_part, name='ignore-part'),
         ]
 
     # ---------------------------- update_part ------------------------------------
@@ -168,6 +169,9 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             self.set_setting('FAILCOUNT', str(fail_counter))
         if fail_counter > 10:
             self.set_setting('ENABLE_SYNC', False)
+            return('Error')
+        else:
+            return('OK')
 
 # ------------------------------ get_next_part --------------------------------
 # Get the next part to be updated. Returns part object.
@@ -344,3 +348,10 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'], price=pb['Price'], price_currency=pb['Currency'])
         sync_object.delete()
         return HttpResponse('OK')
+
+# ------------------------------------- ignore_part -------------------------
+    def ignore_part(self, request, key):
+
+        print('ignore', key)
+        return HttpResponse('OK')
+
