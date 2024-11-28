@@ -34,6 +34,10 @@ class Mouser():
                 part_data['error_status'] = 'InvalidAuthorization'
                 part_data['number_of_results'] = -1
                 return part_data
+            if response['Errors'][0]['Code'] == 'TooManyRequests':
+                part_data['error_status'] = 'TooManyRequests'
+                part_data['number_of_results'] = -1
+                return part_data
         number_of_results = int(response['SearchResults']['NumberOfResult'])
         if number_of_results == 0:
             part_data['error_status'] = f'Part not found: {sku}'

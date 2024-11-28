@@ -267,6 +267,9 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         if data['error_status'] == 'InvalidAuthorization':
             logger.info('Invalid Authorizaion')
             return False
+        if data['error_status'] == 'TooManyRequests':
+            logger.info('Too many requests')
+            return False
         if data['error_status'] == 'InvalidCharacters':
             SupplierPartChange.objects.create(part=p,
                                               change_type="error",
