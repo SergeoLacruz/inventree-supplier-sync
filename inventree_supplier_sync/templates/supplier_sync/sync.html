@@ -5,7 +5,6 @@ async function JDelete(pk){
     response = await fetch( "{% url 'plugin:suppliersync:delete-entry' '9999' %}"
 	                           .replace("9999", pk)
 	                  );
-    console.log(pk)
     location.reload();
 }
 
@@ -13,7 +12,13 @@ async function JAddPart(pk){
     response = await fetch( "{% url 'plugin:suppliersync:add-part' '9999' %}"
 	                           .replace("9999", pk)
 	                  );
-    console.log(pk)
+    location.reload();
+}
+
+async function JIgnorePart(pk){
+    response = await fetch( "{% url 'plugin:suppliersync:ignore-part' '9999' %}"
+	                           .replace("9999", pk)
+	                  );
     location.reload();
 }
 </script>
@@ -49,6 +54,9 @@ async function JAddPart(pk){
         <td> 
 	    <button type='button' class='btn btn-outline-secondary' title='{% trans "Delete" %}' onclick="JDelete({{ sub.pk }})">
 		    <span class='fas fa-trash-alt icon-red'></span>
+	    </button>
+	    <button type='button' class='btn btn-outline-secondary' title='{% trans "Ignore" %}' onclick="JIgnorePart({{ sub.pk }})">
+		    <span class='fas fa-ban icon-black'></span>
 	    </button>
 	{% if sub.number_of_parts == 1 %}
             <button type='button' class='btn btn-outline-secondary' title='{% trans "Add supplier part" %}' onclick="JAddPart({{ sub.pk }})">
