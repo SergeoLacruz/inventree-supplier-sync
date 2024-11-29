@@ -40,7 +40,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 1,
+            'minutes': 3,
         }
     }
 
@@ -206,7 +206,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 # --------------------------- should_be_updated -------------------------------
 # Returns false if the part is excluded from update for various reasons. See code.
 # A complete category can be excluded by putting json:
-# {"supplier_sync": {"exclude": "True"}}
+# {"SupplierSyncPlugin": {"SyncIgnore": true}}
 # into the category meta data field.
 
     def should_be_updated(self, p):

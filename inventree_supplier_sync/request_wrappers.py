@@ -17,7 +17,7 @@ class Wrappers():
             proxies = {}
         try:
             response = requests.post(path,
-                                     verify=False,
+#                                     verify=False,
                                      proxies=proxies,
                                      data=post_data,
                                      timeout=5,
@@ -45,7 +45,7 @@ class Wrappers():
             proxies = {}
         try:
             response = requests.get(path,
-                                    verify=False,
+#                                    verify=False,
                                     proxies=proxies,
                                     timeout=5,
                                     headers=headers

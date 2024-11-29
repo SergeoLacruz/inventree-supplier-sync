@@ -1,7 +1,6 @@
 from common.models import InvenTreeSetting
 
-from inventree_supplier_panel.request_wrappers import Wrappers
-from inventree_supplier_panel.meta_access import MetaAccess
+from .request_wrappers import Wrappers
 import re
 import json
 

@@ -1,3 +1,7 @@
+# Class to access the meta data field in InvenTree. The wrappers build
+# a dict with plugin name so that the data from different plugins does
+# not overlap
+
 class MetaAccess():
 
     def get_value(self, inventree_object, app, key):
@@ -5,11 +9,9 @@ class MetaAccess():
             value = inventree_object.metadata[app][key]
         except Exception:
             value = None
-        print('<----', app, key, value)
         return (value)
 
     def set_value(self, inventree_object, app, key, value):
-        print('---->', app, key, value)
         data = inventree_object.metadata
         if data is None:
             data = {}
