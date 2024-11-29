@@ -8,10 +8,12 @@ from plugin import InvenTreePlugin
 from plugin.mixins import ScheduleMixin, SettingsMixin, AppMixin, PanelMixin, UrlsMixin
 from part.models import Part
 from company.models import Company, SupplierPriceBreak, ManufacturerPart, SupplierPart
-from inventree_supplier_sync.version import PLUGIN_VERSION
-from inventree_supplier_sync.mouser import Mouser
-from .models import SupplierPartChange
 from part.views import PartIndex
+
+from .version import PLUGIN_VERSION
+from .mouser import Mouser
+from .meta_access import MetaAccess
+from .models import SupplierPartChange
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -169,9 +171,9 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             self.set_setting('FAILCOUNT', str(fail_counter))
         if fail_counter > 10:
             self.set_setting('ENABLE_SYNC', False)
-            return('Error')
+            return ('Error')
         else:
-            return('OK')
+            return ('OK')
 
 # ------------------------------ get_next_part --------------------------------
 # Get the next part to be updated. Returns part object.
@@ -220,6 +222,10 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             return False
         if not p.active:
             logger.info('Skipping part %s. Part is not active', p.IPN)
+            return False
+        ignore = MetaAccess.get_value(self, p, self.NAME, 'SyncIgnore')
+        if ignore:
+            logger.info('Skipping part %s. Part is set to ignore', p.IPN)
             return False
         return True
 
@@ -270,6 +276,9 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             return False
         if data['error_status'] == 'InvalidAuthorization':
             logger.info('Invalid Authorizaion')
+            return False
+        if data['error_status'] == 'TooManyRequests':
+            logger.info('Too many requests')
             return False
         if data['error_status'] == 'InvalidCharacters':
             SupplierPartChange.objects.create(part=p,
@@ -352,6 +361,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 # ------------------------------------- ignore_part -------------------------
     def ignore_part(self, request, key):
 
-        print('ignore', key)
+        sync_object = SupplierPartChange.objects.get(pk=key)
+        part = sync_object.part
+        MetaAccess.set_value(self, part, self.NAME, 'SyncIgnore', True)
         return HttpResponse('OK')
-
