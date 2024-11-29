@@ -210,10 +210,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 # into the category meta data field.
 
     def should_be_updated(self, p):
-        try:
-            cat_exclude = p.category.get_metadata('supplier_sync')['exclude'] == 'True'
-        except Exception:
-            cat_exclude = False
+        cat_exclude = MetaAccess.get_value(self, p.category, self.NAME, 'SyncIgnore')
         if cat_exclude:
             logger.info('Skipping part %s. Category is excluded', p.IPN)
             return False
