@@ -37,6 +37,8 @@ class Mouser():
                 part_data['error_status'] = 'TooManyRequests'
                 part_data['number_of_results'] = -1
                 return part_data
+            part_data['error_status'] = response['Errors'][0]['Code']
+            part_data['number_of_results'] = -1
         number_of_results = int(response['SearchResults']['NumberOfResult'])
         if number_of_results == 0:
             part_data['error_status'] = f'Part not found: {sku}'
@@ -53,14 +55,10 @@ class Mouser():
         part_data['package'] = Mouser.get_mouser_package(self, response['SearchResults']['Parts'][0])
         part_data['price_breaks'] = []
         if number_of_results > 1:
-            self.status_code = 'Error, '
-            self.message = 'Multiple parts found. Check supplier part number: ' + sku
             return part_data
         for pb in response['SearchResults']['Parts'][0]['PriceBreaks']:
             new_price = Mouser.reformat_mouser_price(self, pb['Price'])
             part_data['price_breaks'].append({'Quantity': pb['Quantity'], 'Price': new_price, 'Currency': pb['Currency']})
-        self.status_code = 200
-        self.message = 'OK'
         return part_data
 
     # ------------------------------- get_mouser_package --------------------------
@@ -87,7 +85,6 @@ class Mouser():
         price = float(non_decimal.sub('', price))
         return price
 
-    # ------------------------ create_cart -------------------------------------------
     # For Mouser this is just a dummy. We do not create a cart ID so far. It is
     # automatically created by Mouser during item insertion. The return values are
     # only for error handling.

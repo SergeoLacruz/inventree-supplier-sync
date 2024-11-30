@@ -210,7 +210,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 # into the category meta data field.
 
     def should_be_updated(self, p):
-        cat_exclude = MetaAccess.get_value(self, p.category, self.NAME, 'SyncIgnore')
+        cat_exclude = MetaAccess.get_value(self, p.category, 'SyncIgnore')
         if cat_exclude:
             logger.info('Skipping part %s. Category is excluded', p.IPN)
             return False
@@ -220,7 +220,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         if not p.active:
             logger.info('Skipping part %s. Part is not active', p.IPN)
             return False
-        ignore = MetaAccess.get_value(self, p, self.NAME, 'SyncIgnore')
+        ignore = MetaAccess.get_value(self, p, 'SyncIgnore')
         if ignore:
             logger.info('Skipping part %s. Part is set to ignore', p.IPN)
             return False
@@ -268,6 +268,8 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         logger.info('Seach Mouser for %s', p.IPN)
         data = Mouser.get_mouser_partdata(self, p.name, 'none')
         number_of_results = data['number_of_results']
+
+        # catch all known errors
         if data['error_status'] == 'ConnectionError':
             raise ConnectionError('Error connecting to Supplier API', data)
             return False
@@ -285,6 +287,12 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                                               comment='Illegal character in MPN')
             logger.info('Illegal character reported')
             return True
+
+        # Catch all the rest
+        if data['error_status'] != 'OK':
+            logger.info('Other Error' + data['error_status'])
+            return False
+
         if number_of_results == 0:
             logger.info('Mouser reported 0 parts, nothing to do!')
         else:
@@ -360,5 +368,5 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 
         sync_object = SupplierPartChange.objects.get(pk=key)
         part = sync_object.part
-        MetaAccess.set_value(self, part, self.NAME, 'SyncIgnore', True)
+        MetaAccess.set_value(self, part, 'SyncIgnore', True)
         return HttpResponse('OK')
