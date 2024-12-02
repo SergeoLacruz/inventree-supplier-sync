@@ -122,7 +122,8 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
     def update_part(self, *args, **kwargs):
 
         if not self.get_setting('ENABLE_SYNC'):
-            return
+            print('off')
+            return ('Disabled')
         company = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
         try:
             update_pk = int(self.get_setting('AKTPK', cache=False))
@@ -238,18 +239,28 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
     def update_supplier_parts(self, part_to_update, sp, supplier_name):
         logger.info('Updating Mouser part for %s', sp.SKU)
         data = Mouser.get_mouser_partdata(self, sp.SKU, 'exact')
-        if data['number_of_results'] == -1:
-            logger.info('SKU search on %s reported error. ', supplier_name)
+
+        # Here we search for a validate SKU. So no special hadling on errors in SKU
+        if data['error_status'] != 'OK':
+            logger.info('SKU search on %s reported error: %s', supplier_name, data['error_status'])
             return False
+
+        # I the exixting SKU is not reported, the part might have been deleted from Mouser
         if data['number_of_results'] == 0:
             logger.info('SKU search on %s reported 0 parts. ', supplier_name)
-            SupplierPartChange.objects.create(part=part_to_update, change_type="deleted", comment='Part has been deleted from suppliers catalog')
+            SupplierPartChange.objects.create(part=part_to_update,
+                                              change_type="deleted",
+                                              comment='Part has been deleted from suppliers catalog')
             return True
+
         if data['number_of_results'] == 1:
             logger.info('%s reported 1 part. Updating price breaks and lifecycle', supplier_name)
             life_cycle_status = data['lifecycle_status']
             if sp.note != life_cycle_status:
-                SupplierPartChange.objects.create(part=part_to_update, change_type="Life cycle", old_value=sp.note, new_value=life_cycle_status)
+                SupplierPartChange.objects.create(part=part_to_update,
+                                                  change_type="Life cycle",
+                                                  old_value=sp.note,
+                                                  new_value=life_cycle_status)
                 sp.note = life_cycle_status
                 sp.save()
                 logger.info('New lifecycle saved to notes')
@@ -258,6 +269,8 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                 pb.delete()
             for pb in data['price_breaks']:
                 SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'], price=pb['Price'])
+
+        # This case should not happen and might be a bug in Mousers database
         elif data['number_of_results'] > 1:
             logger.info('%s reported %i parts. No update', supplier_name, data['number_of_results'])
         return True
@@ -269,16 +282,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         data = Mouser.get_mouser_partdata(self, p.name, 'none')
         number_of_results = data['number_of_results']
 
-        # catch all known errors
-        if data['error_status'] == 'ConnectionError':
-            raise ConnectionError('Error connecting to Supplier API', data)
-            return False
-        if data['error_status'] == 'InvalidAuthorization':
-            logger.info('Invalid Authorizaion')
-            return False
-        if data['error_status'] == 'TooManyRequests':
-            logger.info('Too many requests')
-            return False
+        # Catch the errors
         if data['error_status'] == 'InvalidCharacters':
             SupplierPartChange.objects.create(part=p,
                                               change_type="error",
@@ -287,10 +291,8 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
                                               comment='Illegal character in MPN')
             logger.info('Illegal character reported')
             return True
-
-        # Catch all the rest
-        if data['error_status'] != 'OK':
-            logger.info('Other Error' + data['error_status'])
+        elif data['error_status'] != 'OK':
+            logger.info('Mouser Error: ' + data['error_status'])
             return False
 
         if number_of_results == 0:
@@ -330,35 +332,35 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
 
         manufacturer_part = ManufacturerPart.objects.filter(part=part.pk)
         if len(manufacturer_part) == 0:
-            logger.error('Part has no manufactuer part')
+            logger.info('Part has no manufactuer part')
             return HttpResponse('Error')
 
-        part_data = Mouser.get_mouser_partdata(self, sync_object.new_value, 'exact')
+        data = Mouser.get_mouser_partdata(self, sync_object.new_value, 'exact')
 
-        if part_data['number_of_results'] == -1:
-            logger.error('Connection error')
+        if data['error_status'] != 'OK':
+            logger.info('SKU search reported error: %s', data['error_status'])
             return HttpResponse('Error')
-        if part_data['number_of_results'] == 0:
-            logger.error('No parts returned')
+        if data['number_of_results'] == 0:
+            logger.info('No parts returned')
             return HttpResponse('Error')
 
         supplier_parts = SupplierPart.objects.filter(part=part.pk)
         for sp in supplier_parts:
-            if sp.SKU.strip() == part_data['SKU'].strip():
-                logger.error('Part has already a supplier part')
+            if sp.SKU.strip() == data['SKU'].strip():
+                logger.info('Part has already a supplier part')
                 return HttpResponse('Error')
 
         sp = SupplierPart.objects.create(part=part,
                                          supplier=supplier,
                                          manufacturer_part=manufacturer_part[0],
-                                         SKU=part_data['SKU'],
-                                         link=part_data['URL'],
-                                         note=part_data['lifecycle_status'],
-                                         packaging=part_data['package'],
-                                         pack_quantity=part_data['pack_quantity'],
-                                         description=part_data['description'],
+                                         SKU=data['SKU'],
+                                         link=data['URL'],
+                                         note=data['lifecycle_status'],
+                                         packaging=data['package'],
+                                         pack_quantity=data['pack_quantity'],
+                                         description=data['description'],
                                          )
-        for pb in part_data['price_breaks']:
+        for pb in data['price_breaks']:
             SupplierPriceBreak.objects.create(part=sp, quantity=pb['Quantity'], price=pb['Price'], price_currency=pb['Currency'])
         sync_object.delete()
         return HttpResponse('OK')

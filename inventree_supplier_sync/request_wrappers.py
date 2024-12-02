@@ -17,12 +17,10 @@ class Wrappers():
             proxies = {}
         try:
             response = requests.post(path,
-#                                     verify=False,
                                      proxies=proxies,
                                      data=post_data,
                                      timeout=5,
-                                     headers=headers
-                                     )
+                                     headers=headers)
         except Exception as e:
             self.status_code = e.args
             raise ConnectionError
@@ -45,11 +43,9 @@ class Wrappers():
             proxies = {}
         try:
             response = requests.get(path,
-#                                    verify=False,
                                     proxies=proxies,
                                     timeout=5,
-                                    headers=headers
-                                    )
+                                    headers=headers)
         except Exception as e:
             self.status_code = e.args
             raise ConnectionError
