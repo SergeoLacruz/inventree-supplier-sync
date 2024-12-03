@@ -147,7 +147,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             update_pk = self.get_next_part(all_parts, part_to_update).pk
             part_to_update = Part.objects.get(pk=update_pk)
         logger.info('Updating part %s %s', part_to_update.IPN, part_to_update.name)
-        supplier_parts = self.get_existing_supplierparts(part_to_update.supplier_parts, company.name)
+        supplier_parts = part_to_update.supplier_parts.filter(supplier=company)
         if len(supplier_parts) > 0:
             logger.info('Supplier part found. Update')
             for sp in supplier_parts:
@@ -192,17 +192,6 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             # item made getit True
             return all_parts[0]
         return False
-
-# ----------------------- get_existing_supplier_parts -------------------------
-# Returns all existing supplier parts where the supplier name is supplier_name
-
-    def get_existing_supplierparts(self, sp, supplier_name):
-        supplier_parts = []
-
-        for ssp in sp.all():
-            if ssp.supplier.name == supplier_name:
-                supplier_parts.append(ssp)
-        return supplier_parts
 
 # --------------------------- should_be_updated -------------------------------
 # Returns false if the part is excluded from update for various reasons. See code.

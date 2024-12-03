@@ -12,6 +12,17 @@ If the access key is wrong:
              'PropertyName': 'API Key'}
            ], 'SearchResults': None}
 
+If the access key is empty:
+{'Errors': [
+            {'Id': 0,
+             'Code': 'Required',
+             'Message': 'Required',
+             'ResourceKey': 'Required',
+             'ResourceFormatString': None,
+             'ResourceFormatString2': None,
+             'PropertyName': 'API Key'}
+           ], 'SearchResults': None}
+
 If there are invalid characters in the search string like non ACSII:
 {'Errors': [
             {'Id': 0,
