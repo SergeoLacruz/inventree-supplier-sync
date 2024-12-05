@@ -31,9 +31,13 @@ after installing.
 Place here the primary key of the supplier Mouser in your system. You can select from a list of
 your suppliers. If this is not set the panel will not be displayed and a error is raised.
 
-### Mouser Serach API key
+### Mouser Search API key
 Accessing the Mouser REST API requires an access key. You can create it easily on the Mouser
 WEB page. Put the key here.
+
+### Enable the plugin
+This enables the regular scan of the Mouser API. It switch is off, nothing will happen.
+Work with the sync results panel is still possible
 
 ### Supplier Link
 Put here the link to the API. Usually it is constant and does not need to be changed but who knows.
@@ -46,6 +50,12 @@ Please refer to the code for details.
 ### The actual component
 This is the primary key of the next component to be synchronized. It is a persistent storage
 of the plugin and changes automatically. You should not touch it.
+
+### Failure count
+This value counts up each time an access to the supplier API fail. This can happen if
+the network connection is broken or the suppliers server is down. When this counter
+reaches 10, the regular sync is disabled by setting the switch above to off. Check
+the connection, reset the counter and enable the sync again.
 
 ## Usage
 ### What it does
