@@ -72,15 +72,14 @@ class Mouser():
             response = response.json()
         except Exception:
             part_data['error_status'] = response
-            part_data['number_of_results'] = -1
             return part_data
 
+#        print(response)
         # If we are here, Mouser responded. Lets look for errors. Some
         # errors do not come in the Errors array, but in a Message.
         # Lets check those first
         try: 
             part_data['error_status'] = response['Message'] 
-            part_data['number_of_results'] = -1
             return part_data
         except Exception:
             pass
@@ -90,16 +89,12 @@ class Mouser():
         if response['Errors'] != []:
             if response['Errors'][0]['Code'] == 'InvalidCharacters':
                 part_data['error_status'] = 'InvalidCharacters'
-                part_data['number_of_results'] = -1
             elif response['Errors'][0]['Code'] == 'Invalid':
                 part_data['error_status'] = 'InvalidAuthorization'
-                part_data['number_of_results'] = -1
             elif response['Errors'][0]['Code'] == 'TooManyRequests':
                 part_data['error_status'] = 'TooManyRequests'
-                part_data['number_of_results'] = -1
             else:
                 part_data['error_status'] = response['Errors'][0]['Code']
-                part_data['number_of_results'] = -1
             return part_data
 
         # If we came here, no errors have been reported and there sould be results.
