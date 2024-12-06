@@ -122,7 +122,6 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
     def update_part(self, *args, **kwargs):
 
         if not self.get_setting('ENABLE_SYNC'):
-            print('off')
             return ('Disabled')
         company = Company.objects.filter(pk=int(self.get_setting('MOUSER_PK')))[0]
         try:
@@ -234,7 +233,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             logger.info('SKU search on %s reported error: %s', supplier_name, data['error_status'])
             return False
 
-        # I the exixting SKU is not reported, the part might have been deleted from Mouser
+        # If the exixting SKU is not reported, the part might have been deleted from Mouser
         if data['number_of_results'] == 0:
             logger.info('SKU search on %s reported 0 parts. ', supplier_name)
             SupplierPartChange.objects.create(part=part_to_update,
