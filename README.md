@@ -115,11 +115,5 @@ For the plugin to work your database needs to full fill some requirements:
 - All parts need to have a name that matches the manufacturer part number
 
 ## Things to do
-The plugin is still in experimental state. There might be issues with the sync items list.
-If you do not want this feature, use the 0.2.0 branch so far.
-
-Error handling is not good yet. In case Mouser returns garbage the plugin might just crash
-because keys in the json might be missing
-
-E.g. Mouser sends more data like availability, packaging and so on. It may make sense to
+Mouser sends more data like availability, packaging and so on. It may make sense to
 include these into the properties to update.
