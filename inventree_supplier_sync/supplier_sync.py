@@ -268,7 +268,6 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
     def log_new_supplierpart(self, p):
         logger.info('Seach Mouser for %s', p.IPN)
         data = Mouser.get_mouser_partdata(self, p.name, 'none')
-        number_of_results = data['number_of_results']
 
         # Catch the errors
         if data['error_status'] == 'InvalidCharacters':
@@ -283,6 +282,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             logger.info('Mouser Error: ' + data['error_status'])
             return False
 
+        number_of_results = data['number_of_results']
         if number_of_results == 0:
             logger.info('Mouser reported 0 parts, nothing to do!')
         else:
