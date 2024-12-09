@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: release
-      url: https://pypi.org/p/inventree-supplier-panel
+      url: https://pypi.org/p/inventree-supplier-sync
     permissions:
       id-token: write
 

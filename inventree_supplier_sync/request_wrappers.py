@@ -22,7 +22,7 @@ class Wrappers():
                                      timeout=5,
                                      headers=headers)
         except Exception as e:
-            return e.args
+            return (e.args)
         return (response)
 
     def get_request(self, path, headers):
@@ -40,12 +40,5 @@ class Wrappers():
                                     timeout=5,
                                     headers=headers)
         except Exception as e:
-            self.status_code = e.args
-            raise ConnectionError
-        if response.status_code != 200:
-            self.status_code = response.status_code
-            self.message = response.content
-            return (response)
-        self.status_code = response.status_code
-        self.message = 'OK'
+            return (e.args)
         return (response)

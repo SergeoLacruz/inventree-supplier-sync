@@ -40,7 +40,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 3,
+            'minutes': 1,
         }
     }
 

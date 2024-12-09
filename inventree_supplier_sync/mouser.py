@@ -46,10 +46,7 @@ If you created more than 1000 requests within 24 hours:
            ], 'SearchResults': None}
 
 """
-from common.models import InvenTreeSetting
-
 from .request_wrappers import Wrappers
-from .meta_access import MetaAccess
 
 import re
 import json
@@ -78,14 +75,14 @@ class Mouser():
         # If we are here, Mouser responded. Lets look for errors. Some
         # errors do not come in the Errors array, but in a Message.
         # Lets check those first
-        try: 
-            part_data['error_status'] = response['Message'] 
+        try:
+            part_data['error_status'] = response['Message']
             return part_data
         except Exception:
             pass
 
         # Then we evaluate the Errors array. there are some known errors
-        # and the rest. 
+        # and the rest.
         if response['Errors'] != []:
             if response['Errors'][0]['Code'] == 'InvalidCharacters':
                 part_data['error_status'] = 'InvalidCharacters'
