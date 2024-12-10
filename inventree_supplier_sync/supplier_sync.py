@@ -17,11 +17,11 @@ from .models import SupplierPartChange
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-fh = logging.FileHandler('sync.log')
-fh.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+# fh = logging.FileHandler('sync.log')
+# fh.setLevel(logging.INFO)
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# fh.setFormatter(formatter)
+# logger.addHandler(fh)
 
 
 # ---------------------------- SupplierSyncPlugin -----------------------------
@@ -40,7 +40,7 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
         'member': {
             'func': 'update_part',
             'schedule': 'I',
-            'minutes': 1,
+            'minutes': 5,
         }
     }
 
