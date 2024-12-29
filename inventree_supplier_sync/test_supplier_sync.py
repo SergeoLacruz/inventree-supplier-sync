@@ -22,6 +22,24 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
         self.assertEqual(Mouser.reformat_mouser_price(self, ''), 0)
         self.assertEqual(Mouser.reformat_mouser_price(self, 'Mumpitz'), 0)
 
+    def test_get_mouser_package(self):
+
+        SettingsMixin.set_setting(self, key='MOUSERLANGUAGE', value='German')
+        part_data = {'ProductAttributes': [
+            {'AttributeName': 'Verpackung', 'AttributeValue': 'Reel'},
+            {'AttributeName': 'Verpackung', 'AttributeValue': 'Cut Tape'},
+            {'AttributeName': 'Verpackung', 'AttributeValue': 'MouseReel',
+                'AttributeCost': 'Für die MouseReel™ wird Ihrem Warenkorb automatisch eine Gebühr...'},
+            {'AttributeName': 'Standardpackungsmenge', 'AttributeValue': '3000'}]}
+
+        self.assertEqual(Mouser.get_mouser_package(self, part_data), 'Reel, Cut Tape, MouseReel, ')
+
+        SettingsMixin.set_setting(self, key='MOUSERLANGUAGE', value='English')
+        self.assertEqual(Mouser.get_mouser_package(self, part_data), '')
+
+        part_data = {}
+        self.assertEqual(Mouser.get_mouser_package(self, part_data), None)
+
     def test_should_be_updated(self):
         cat_include = PartCategory.objects.create(name='cat_include')
         cat_ignore = PartCategory.objects.create(name='cat_ignore', metadata={"SupplierSyncPlugin": {"SyncIgnore": True}})
