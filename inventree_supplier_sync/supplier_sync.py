@@ -54,6 +54,13 @@ class SupplierSyncPlugin(AppMixin, ScheduleMixin, SettingsMixin, PanelMixin, Inv
             'name': 'Supplier API Key new',
             'description': 'Place here your key for the suppliers API',
         },
+        'MOUSERLANGUAGE': {
+            'name': 'Mouser language',
+            'description': 'The language that Mouser uses to answer your requests',
+            'choices': [('English', 'Mouser answers in English'),
+                        ('German', 'Mouser answers in German')],
+            'default': 'German',
+        },
         'ENABLE_SYNC': {
             'name': 'Enable the plugin',
             'description': 'Allow the regular synchronisation',
