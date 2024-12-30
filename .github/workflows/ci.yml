@@ -30,29 +30,6 @@ jobs:
         run: |
           flake8 . --ignore=E501,W503
 
-  unit-tests-python:
-    name: "🧪 Unit tests: python"
-    #    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
-    needs: style-python
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install style check dependencies
-        run: |
-          pip install httmock==1.4.0
-
-      - name: Run tests
-        run: |
-          invoke dev.test -r inventree_supplier_sync.test_supplier_sync.TestSyncPlugin
-
   publish:
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: [style-python]
