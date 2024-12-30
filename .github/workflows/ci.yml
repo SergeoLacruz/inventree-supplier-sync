@@ -48,11 +48,10 @@ jobs:
       - name: Install style check dependencies
         run: |
           pip install httmock==1.4.0
-          pip install Django
 
       - name: Run tests
         run: |
-          python -m unittest discover -s inventree_supplier_sync
+          invoke dev.test -r inventree_supplier_sync.test_supplier_sync.TestSyncPlugin
 
   publish:
     if: github.event_name == 'release' && github.event.action == 'published'
