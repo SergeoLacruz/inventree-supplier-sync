@@ -48,6 +48,7 @@ jobs:
       - name: Install style check dependencies
         run: |
           pip install httmock==1.4.0
+          pip django.test
 
       - name: Run tests
         run: |
