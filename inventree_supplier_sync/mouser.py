@@ -1,5 +1,5 @@
 """
-Unfortunately Mouser does not list possible errir codes. Here are some examples:
+Unfortunately Mouser does not list possible error codes. Here are some examples:
 
 If the access key is wrong:
 {'Errors': [
