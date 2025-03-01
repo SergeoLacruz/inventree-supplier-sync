@@ -14,7 +14,7 @@ from .supplier_sync import SupplierSyncPlugin
 
 class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
 
-# ----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def test_reformat_mouser_price(self):
 
         self.assertEqual(Mouser.reformat_mouser_price(self, '1.456,34 €'), 1456.34)
@@ -23,7 +23,7 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
         self.assertEqual(Mouser.reformat_mouser_price(self, ''), 0)
         self.assertEqual(Mouser.reformat_mouser_price(self, 'Mumpitz'), 0)
 
-# ----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def test_get_mouser_package(self):
 
         SettingsMixin.set_setting(self, key='MOUSERLANGUAGE', value='German')
@@ -42,7 +42,7 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
         part_data = {}
         self.assertEqual(Mouser.get_mouser_package(self, part_data), None)
 
-# ----------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------
     def test_should_be_updated(self):
         cat_include = PartCategory.objects.create(name='cat_include')
         cat_ignore = PartCategory.objects.create(name='cat_ignore', metadata={"SupplierSyncPlugin": {"SyncIgnore": True}})
@@ -94,8 +94,8 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
         self.assertEqual(SupplierSyncPlugin.should_be_updated(test_class, part_ignore_not_pur), False, 'Part not purchasable')
         self.assertEqual(SupplierSyncPlugin.should_be_updated(test_class, part_ignore_meta), False, 'Part ignored becasue of metadata')
 
-# ----------------------------------------------------------------------------
-# Lets first test all error cases that can occur
+    # ----------------------------------------------------------------------------
+    # Lets first test all error cases that can occur
 
     def test_get_mouser_partdata_errors(self):
 
@@ -111,15 +111,16 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
         # Too many request
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
         content = {'Errors': [
-                        {'Id': 0,
-                         'Code': 'TooManyRequests',
-                         'Message': None,
-                         'ResourceKey': None,
-                         'ResourceFormatString': None,
-                         'ResourceFormatString2': None,
-                         'PropertyName': None}
-                       ], 'SearchResults': None
+            {'Id': 0,
+             'Code': 'TooManyRequests',
+             'Message': None,
+             'ResourceKey': None,
+             'ResourceFormatString': None,
+             'ResourceFormatString2': None,
+             'PropertyName': None}
+        ], 'SearchResults': None
         }
+
         @urlmatch(netloc=r'(.*\.)?api\.mouser\.com.*')
         def mouser_mock(url, request):
             return response(200, content, headers, None, 5, request)
@@ -130,15 +131,16 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
         # Unknown error
         headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
         content = {'Errors': [
-                        {'Id': 0,
-                         'Code': 'WhatEverCode',
-                         'Message': None,
-                         'ResourceKey': None,
-                         'ResourceFormatString': None,
-                         'ResourceFormatString2': None,
-                         'PropertyName': None}
-                       ], 'SearchResults': None
+            {'Id': 0,
+             'Code': 'WhatEverCode',
+             'Message': None,
+             'ResourceKey': None,
+             'ResourceFormatString': None,
+             'ResourceFormatString2': None,
+             'PropertyName': None}
+        ], 'SearchResults': None
         }
+
         @urlmatch(netloc=r'(.*\.)?api\.mouser\.com.*')
         def mouser_mock(url, request):
             return response(200, content, headers, None, 5, request)
@@ -146,11 +148,11 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
             data = Mouser.get_mouser_partdata(self, 'LTC7806IUFDM#WPBF', 'none')
         self.assertEqual(data['error_status'], 'WhatEverCode', 'Some unknown error')
 
-#-----------------------------------------------------------------------------
-# Test with corect data, one result returned. Because we do not want to
-# distribute a valid key and need a stable response, we mock the Mouser
-# URL using the HTTMock library. Some unused entries have been removed
-# from the content.
+    # -------------------------------------------------------------------------
+    # Test with corect data, one result returned. Because we do not want to
+    # distribute a valid key and need a stable response, we mock the Mouser
+    # URL using the HTTMock library. Some unused entries have been removed
+    # from the content.
 
     def test_get_mouser_partdata(self):
 
@@ -161,8 +163,8 @@ class TestSyncPlugin(TestCase, SettingsMixin, InvenTreePlugin):
             'SearchResults': {
                 'NumberOfResult': 0,
                 'Parts': []
-                }
             }
+        }
 
         @urlmatch(netloc=r'(.*\.)?api\.mouser\.com.*')
         def mouser_mock(url, request):
